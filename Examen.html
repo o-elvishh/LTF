@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <base target="_top">
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Examen Bioseguridad <?= version ?> - Laboratorio TFD</title>
+  <style>
+    body { font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif; background-color: #f4f7f6; color: #333; max-width: 800px; margin: 40px auto; padding: 20px; line-height: 1.6; }
+    .card { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+    .step { display: none; }
+    .step.active { display: block; }
+    h2 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; margin-bottom: 20px; }
+    .opciones-header { background: #ebf5fb; padding: 15px; border-radius: 6px; font-weight: bold; margin-bottom: 20px; border: 1px solid #d6eaf8; font-size: 0.95em; }
+    .pregunta-caja { margin-bottom: 20px; padding: 15px; background: #fff; border: 1px solid #eee; border-radius: 8px; }
+    select, input[type="text"], input[type="email"] { width: 100%; padding: 10px; margin-top: 10px; border: 1px solid #ccc; border-radius: 5px; box-sizing: border-box; font-size: 16px; }
+    button { background: #3498db; color: white; border: none; padding: 12px 25px; border-radius: 5px; cursor: pointer; font-size: 16px; margin-top: 20px; font-weight: bold; }
+    button:hover { background: #2980b9; }
+    button:disabled { background: #95a5a6; cursor: not-allowed; }
+    .label-bp { display: block; margin-top: 15px; font-weight: bold; }
+    .mensaje-error { background: #fdecea; border: 1px solid #e74c3c; color: #922b21; padding: 14px; border-radius: 6px; margin-top: 16px; display: none; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <form id="examenForm">
+      <input type="hidden" name="version" value="<?= version ?>">
+
+      <div class="step active" id="step0">
+        <h2>EXAMEN DE BIOSEGURIDAD - VERSIÓN <?= version ?></h2>
+        <p>Por favor, ingrese sus datos para comenzar.</p>
+        <input type="text" name="nombre" placeholder="Nombre completo" required>
+        <input type="email" name="correo" placeholder="Correo electrónico" required>
+        <button type="button" onclick="cambiarPaso(0, 1)">Comenzar Examen</button>
+      </div>
+
+      <div id="pasosPreguntas"></div>
+    </form>
+  </div>
+
+  <script>
+    const VERSION = "<?= version ?>";
+
+    const EXAMENES = {
+      A: [
+        { titulo: "Medidas de bioseguridad y equipos de protección", opciones: "A) Medidas de protección primarias, B) Barreras de protección secundarias, C) Ambas, D) Normas generales, E) Ninguna", preguntas: [
+          "El uso de bata de manga larga, guantes y cubrebocas corresponde a:",
+          "El lavado de manos antes y después de usar guantes es parte de:",
+          "La prohibición de comer, beber o fumar en el laboratorio corresponde a:",
+          "La disponibilidad de instalaciones de descontaminación es parte de:",
+          "El acceso controlado y flujo direccional del aire en un laboratorio NBS-3 se considera:"
+        ]},
+        { titulo: "Manejo de derrames, accidentes y emergencias", opciones: "A) Derrame biológico, B) Químicos ácidos, C) Químicos alcalinos, D) Salpicadura ojos/piel, E) Quemadura/intoxicación", preguntas: [
+          "Se cubre con papel absorbente y se desinfecta con hipoclorito de sodio al 1%:",
+          "Se lava con agua corriente y se neutraliza con ácido bórico saturado o ácido acético al 1%:",
+          "Se lava la zona con chorro de agua fría o agua con hielo por 10-15 minutos:",
+          "Se debe favorecer el sangrado si la herida es grave, luego buscar atención médica:",
+          "Se cubre con una gasa gruesa para aislar del aire mientras llega atención médica:"
+        ]},
+        { titulo: "Niveles de bioseguridad y agentes de riesgo", opciones: "A) NBS-1, B) NBS-2, C) NBS-3, D) NBS-4, E) No corresponde", preguntas: [
+          "Saccharomyces cerevisiae y Bacillus subtilis se manejan en:",
+          "Mycobacterium tuberculosis y VIH requieren:",
+          "Virus del Ébola y de la viruela se manejan en:",
+          "Histoplasma capsulatum generalmente se maneja en:",
+          "En el laboratorio de TFD se trabajan hongos dermatofitos y Candida albicans:"
+        ]},
+        { titulo: "Normas, procedimientos y gestión en el laboratorio", opciones: "A) Normas generales, B) Desechos biológicos, C) Desechos químicos, D) Recomendaciones, E) Condiciones especiales", preguntas: [
+          "Limpiar y desinfectar superficies al inicio y final de la jornada:",
+          "Los desechos químicos tóxicos deben almacenarse en contenedores etiquetados:",
+          "Cualquier accidente debe comunicarse al responsable del laboratorio:",
+          "Usar siempre un control para comparar resultados obtenidos:"
+        ]},
+        { titulo: "Procedimientos y cuidados generales de equipos", opciones: "A) Autoclave, B) Microscopio, C) Incubadora, D) Medidor de pH, E) Baño María", preguntas: [
+          "¿Qué equipo debe cubrirse con un protector de polvo cuando no está en uso?",
+          "¿En qué equipo se recomienda verificar la temperatura en horas matutinas y vespertinas?",
+          "¿Qué equipo se debe abrir solo cuando el manómetro marque cero?"
+        ]},
+        { titulo: "Manejo y precauciones específicas", opciones: "A) Autoclave, B) Centrífuga, C) Campana de flujo laminar, D) Agitador Vortex, E) Micropipeta", preguntas: [
+          "¿En qué equipo se deben colocar tubos en posiciones opuestas para balancear la carga?",
+          "¿Qué equipo requiere vigilar el manómetro y evacuar si llega a zona roja?",
+          "¿Qué equipo tiene un cabezal de agitación retirable para limpieza?"
+        ]},
+        { titulo: "Mantenimiento y limpieza", opciones: "A) Microscopio, B) Incubadora, C) Balanza granataria, D) Autoclave, E) Medidor de pH", preguntas: [
+          "¿Qué equipo debe limpiarse evitando productos agresivos en la puerta acrílica?",
+          "¿En qué equipo se debe verificar el ajuste del diafragma y plataforma mecánica?",
+          "¿En qué equipo se debe sacar y reemplazar el agua sucia al finalizar cada ciclo?",
+          "¿En qué equipo es vital una superficie plana y plato libre de residuos?"
+        ]},
+        { titulo: "Seguridad y recomendaciones de uso", opciones: "A) Autoclave, B) Centrífuga, C) Campana de flujo laminar, D) Baño María, E) Agitador Vortex", preguntas: [
+          "¿Qué equipo no debe abrirse hasta que haya cesado por completo su movimiento?",
+          "¿Qué equipo debe desenchufarse antes de limpiar o retirar su cabezal?",
+          "¿Qué equipo se debe prender con anticipación para estabilizar el flujo de aire?"
+        ]}
+      ],
+      B: [
+        { titulo: "Medidas de bioseguridad y equipos de protección", opciones: "A) Medidas de protección primarias, B) Barreras de protección secundarias, C) Ambas, D) Normas generales de bioseguridad, E) Ninguna de las anteriores", preguntas: [
+          "El diseño de instalaciones separadas del acceso público en el laboratorio es una:",
+          "Contar con ventilación especializada y flujo de aire controlado se considera:",
+          "El uso de gafas de plástico o caretas al manipular sustancias corrosivas es una:",
+          "Mantener el cabello recogido o corto en el laboratorio es una medida de:",
+          "No pipetear con la boca y usar peras de plástico o pipetas automáticas es una:"
+        ]},
+        { titulo: "Manejo de derrames, accidentes y emergencias", opciones: "A) Derrame biológico, B) Derrame químicos ácidos, C) Derrame químicos alcalinos, D) Salpicadura ojos/piel, E) Quemadura/intoxicación química", preguntas: [
+          "Se lava con abundante agua corriente y se neutraliza con bicarbonato de sodio:",
+          "Se aplica agua corriente por al menos 10 minutos sin frotar:",
+          "En caso de inhalación de productos químicos, se debe llevar a la persona a un sitio con aire fresco:",
+          "Si el producto ingerido es corrosivo, no se provoca el vómito:",
+          "Se lava con agua y jabón si es herida leve por salpicadura de material potencialmente infectante:"
+        ]},
+        { titulo: "Niveles de bioseguridad y agentes de riesgo", opciones: "A) NBS-1, B) NBS-2, C) NBS-3, D) NBS-4, E) No corresponde", preguntas: [
+          "Escherichia coli y Candida albicans se manejan en:",
+          "Se requiere ropa especial, acceso controlado y flujo direccional del aire en:",
+          "Fibroblastos dérmicos humanos ATCC se trabajan normalmente en:",
+          "Requiere cámaras de seguridad biológica Clase II/III y trajes presurizados:",
+          "Penicillium roqueforti se maneja en:"
+        ]},
+        { titulo: "Normas, procedimientos y gestión en el laboratorio", opciones: "A) Normas generales, B) Desechos biológicos, C) Desechos químicos, D) Recomendaciones, E) Condiciones especiales", preguntas: [
+          "Los desechos biológicos deben ser descontaminados antes de su recolección:",
+          "Preparar stocks de soluciones periódicamente y en cantidades necesarias es una:",
+          "No detener manualmente la centrífuga ni destaparla antes de que deje de girar es una:",
+          "Los tubos que se introducen en la centrífuga deben ir tapados:"
+        ]},
+        { titulo: "Procedimientos y cuidados generales de equipos", opciones: "A) Autoclave, B) Microscopio, C) Incubadora, D) Medidor de pH, E) Baño María", preguntas: [
+          "¿En qué equipo es importante evitar cambios bruscos de temperatura ambiental?",
+          "¿En qué equipo es fundamental que el electrodo se mantenga húmedo?",
+          "¿Qué equipo tiene elementos ópticos que requieren limpieza especial con papel óptico?"
+        ]},
+        { titulo: "Manejo y precauciones específicas", opciones: "A) Autoclave, B) Centrífuga, C) Campana de flujo laminar, D) Agitador Vortex, E) Micropipeta", preguntas: [
+          "¿En qué equipo es crucial prenderlo con anticipación y dejar circular aire por 5 minutos?",
+          "¿Qué equipo se recomienda almacenarlo en posición vertical cuando no esté en uso?",
+          "¿En qué equipo se debe encender la luz UV por al menos 15 minutos antes de trabajar?"
+        ]},
+        { titulo: "Mantenimiento y limpieza", opciones: "A) Microscopio, B) Incubadora, C) Balanza granataria, D) Autoclave, E) Medidor de pH", preguntas: [
+          "¿En qué equipo se recomienda lubricar periódicamente sus componentes mecánicos?",
+          "¿Qué equipo necesita que se limpie el electrodo después de cada medición?",
+          "¿Qué equipo debe calibrarse periódicamente para garantizar mediciones precisas de pH?",
+          "¿En qué equipo se deben limpiar los elementos ópticos externos para remover polvo?"
+        ]},
+        { titulo: "Seguridad y recomendaciones de uso", opciones: "A) Autoclave, B) Centrífuga, C) Campana de flujo laminar, D) Baño María, E) Agitador Vortex", preguntas: [
+          "¿Qué equipo requiere el uso de guantes de protección térmica al retirar material?",
+          "¿En qué equipo es necesario equilibrar correctamente los tubos antes de activarlo?",
+          "¿En qué equipo se debe verificar que la puerta esté bien sellada antes de esterilizar?"
+        ]}
+      ]
+    };
+
+    function crearSelect(nombre) {
+      return '<select name="' + nombre + '" required>' +
+        '<option value="">Seleccione...</option>' +
+        '<option value="A">A</option><option value="B">B</option><option value="C">C</option>' +
+        '<option value="D">D</option><option value="E">E</option>' +
+        '</select>';
+    }
+
+    function renderizarExamen() {
+      const contenedor = document.getElementById("pasosPreguntas");
+      let numeroPregunta = 1;
+      let html = "";
+
+      EXAMENES[VERSION].forEach((seccion, index) => {
+        const paso = index + 1;
+        const siguiente = paso + 1;
+        html += '<div class="step" id="step' + paso + '">' +
+          '<h2>' + seccion.titulo + '</h2>' +
+          '<div class="opciones-header">' + seccion.opciones + '</div>';
+
+        seccion.preguntas.forEach((pregunta) => {
+          html += '<div class="pregunta-caja"><p>' + numeroPregunta + ". " + pregunta + "</p>" +
+            crearSelect("p" + numeroPregunta) + "</div>";
+          numeroPregunta++;
+        });
+
+        html += '<button type="button" onclick="cambiarPaso(' + paso + ', ' + siguiente + ')">' +
+          (index === EXAMENES[VERSION].length - 1 ? "Siguiente Sección (Abiertas)" : "Siguiente Sección") +
+          "</button></div>";
+      });
+
+      html += '<div class="step" id="step9">' +
+        "<h2>Buenas prácticas en el laboratorio</h2>" +
+        "<p>Mencione 4 buenas prácticas para el trabajo en el laboratorio de TFD y cultivo celular:</p>" +
+        '<div class="pregunta-caja">' +
+        '<span class="label-bp">33.</span> <input type="text" name="bp1" required placeholder="Buena práctica 1...">' +
+        '<span class="label-bp">34.</span> <input type="text" name="bp2" required placeholder="Buena práctica 2...">' +
+        '<span class="label-bp">35.</span> <input type="text" name="bp3" required placeholder="Buena práctica 3...">' +
+        '<span class="label-bp">36.</span> <input type="text" name="bp4" required placeholder="Buena práctica 4...">' +
+        "</div>" +
+        '<button type="button" id="btnEnviar" onclick="enviarExamen()">Finalizar y Enviar Examen ' + VERSION + "</button>" +
+        '<div class="mensaje-error" id="mensajeError"></div>' +
+        "</div>";
+
+      contenedor.innerHTML = html;
+    }
+
+    function cambiarPaso(actual, siguiente) {
+      const inputs = document.querySelectorAll("#step" + actual + " select, #step" + actual + " input");
+
+      for (const input of inputs) {
+        if (!input.checkValidity()) {
+          input.reportValidity();
+          return;
+        }
+      }
+
+      document.getElementById("step" + actual).classList.remove("active");
+      document.getElementById("step" + siguiente).classList.add("active");
+      window.scrollTo(0, 0);
+      history.pushState(null, "", location.href);
+    }
+
+    function enviarExamen() {
+      const btn = document.getElementById("btnEnviar");
+      const form = document.getElementById("examenForm");
+      const errorBox = document.getElementById("mensajeError");
+      const inputsFinales = document.querySelectorAll("#step9 input");
+
+      errorBox.style.display = "none";
+
+      for (const input of inputsFinales) {
+        if (!input.checkValidity()) {
+          input.reportValidity();
+          return;
+        }
+      }
+
+      btn.disabled = true;
+      btn.innerText = "Enviando...";
+
+      const data = Object.fromEntries(new FormData(form).entries());
+
+      google.script.run
+        .withSuccessHandler((resultado) => {
+          if (resultado && resultado.ok) {
+            document.querySelector(".card").innerHTML =
+              "<h2>¡Enviado!</h2><p>Tus respuestas del Examen han sido registradas.</p>";
+            return;
+          }
+
+          mostrarError(resultado && resultado.error ? resultado.error : "No se pudo registrar el examen.");
+        })
+        .withFailureHandler((error) => {
+          mostrarError(error && error.message ? error.message : "No se pudo conectar con Apps Script.");
+        })
+        .procesarExamen(data);
+    }
+
+    function mostrarError(mensaje) {
+      const btn = document.getElementById("btnEnviar");
+      const errorBox = document.getElementById("mensajeError");
+      errorBox.textContent = "No se pudo registrar el examen: " + mensaje;
+      errorBox.style.display = "block";
+      btn.disabled = false;
+      btn.innerText = "Reintentar";
+    }
+
+    window.onpopstate = function() { history.go(1); };
+    renderizarExamen();
+  </script>
+</body>
+</html>
